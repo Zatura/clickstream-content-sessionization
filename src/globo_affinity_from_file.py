@@ -77,9 +77,9 @@ df_errors = pd.DataFrame(error_list)
 
 
 ######################################################
-# OPCIONAL!!!!
-# Este calculo abaixo demora(umas 3 horas), o resultado dele
-# está no pickle df_clicks.pickle
+# OPTIONAL!!!!
+# The following calculation above takes time (3 hours +/-)
+# its result can be found on df_clicks.pickle
 ######################################################
 # df_clicks['label'] = ''
 # count = 0
@@ -89,8 +89,7 @@ df_errors = pd.DataFrame(error_list)
 
 
 ######################################################
-# Exemplo de exibicao de grafico de frequencia (em barras)
-# do usuario de id 22
+# Example of frequency chart from user id=22
 ######################################################
 df_pickle = pickle.load(open("data/df_clicks.pickle", "rb"))
 df_pickle[df_pickle['user_id'] == 22].sort_values(by=['label'], kind='mergesort')['label'].value_counts().plot.barh()
