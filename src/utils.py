@@ -4,9 +4,9 @@ from itertools import cycle
 import random
 from sklearn.cluster import AffinityPropagation
 import pandas as pd
+import numpy as np
 from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-import numpy as np
 
 
 def get_error(cutoff_index, true_index, last_index):
@@ -38,7 +38,7 @@ def plot_globo_clicks(tsne_clicks, damping=0.5, sample=2000):
     print("n_clusters: ", n_clusters_)
 
     # plotting
-    colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
+    colors = cycle('bgrcmyk')
     for k, col in zip(range(n_clusters_), colors):
         class_members = labels == k
         cluster_center = tsne_clicks_sample[cluster_centers_indices[k]]
@@ -91,9 +91,9 @@ def get_random_labels(amount=10, deterministic=True):
     return prod[:amount]
 
 
-def get_nearest_label(articles_row: Series, df_center: DataFrame):
-    delta_x = articles_row['X'] - df_center['X']
-    delta_y = articles_row['Y'] - df_center['Y']
+def get_nearest_label(row: Series, df_center: DataFrame):
+    delta_x = row['X'] - df_center['X']
+    delta_y = row['Y'] - df_center['Y']
     distances = euclidean_distance(delta_x, delta_y)
     index = distances[distances == distances.min()].index[0]
     return df_center['label'][index]
@@ -103,19 +103,30 @@ def euclidean_distance(x, y):
     return np.sqrt(pow(x, 2) + pow(y, 2))
 
 
-def set_article_label(articles_row: Series, df_labeled_articles: DataFrame):
+def set_article_label(row: Series, df_labeled_articles: DataFrame):
     global count
     count += 1
-    if count % 10000 == 0: print(count)
-    return df_labeled_articles[df_labeled_articles['article_id'] == articles_row['click_article_id']]['label']
+    if count % 10000 == 0:
+        print(count)
+    return df_labeled_articles[df_labeled_articles['article_id'] == row['click_article_id']]['label']
 
 
-def build_simulated_sessions(uids: np.array, df_clicks: DataFrame, step: int = 1):
+def labels_from_articles(row: Series, df_labeled_articles: DataFrame):
+    global count
+    count += 1
+    _id = row['click_article_id']
+    row['label'] = df_labeled_articles[df_labeled_articles['article_id'] == _id]['label']
+    if count % 1000 == 0:
+        print(count, ": ", row['label'].values[0])
+    return row['label']
+
+
+def build_simulated_sessions(user_ids: np.array, df_clicks: DataFrame, step: int = 1):
     print('[ INFO ] building simulated sessions')
     sample_sessions = []
-    for index in range(0, len(uids) - step, step):
-        df1 = df_clicks[df_clicks['user_id'] == uids[index]]
-        df2 = df_clicks[df_clicks['user_id'] == uids[index + 1]]
+    for index in range(0, len(user_ids) - step, step):
+        df1 = df_clicks[df_clicks['user_id'] == user_ids[index]]
+        df2 = df_clicks[df_clicks['user_id'] == user_ids[index + 1]]
         df_concatenated = pd.concat([df1, df2])
         df_concatenated.reset_index(inplace=True, drop=True)
         sample_sessions.append(df_concatenated)
@@ -124,15 +135,14 @@ def build_simulated_sessions(uids: np.array, df_clicks: DataFrame, step: int = 1
     return sample_sessions
 
 
-def calculate_sessions_mean_distance(uids: np.array, sessions: DataFrame, step: int = 1):
-    distance_array_mean = np.zeros(shape=len(uids))
-    distance_array_std = np.zeros(shape=len(uids))
-    for index in range(0, len(uids) - step, step):
-        df1 = sessions[sessions['user_id'] == uids[index]]
+def calculate_sessions_mean_distance(user_ids: np.array, sessions: DataFrame, step: int = 1):
+    distance_array_mean = np.zeros(shape=len(user_ids))
+    distance_array_std = np.zeros(shape=len(user_ids))
+    for index in range(0, len(user_ids) - step, step):
+        df1 = sessions[sessions['user_id'] == user_ids[index]]
         delta_x = df1['x_centroid'] - df1['x_centroid'].shift(1)
         delta_y = df1['y_centroid'] - df1['y_centroid'].shift(1)
-        euclidean = lambda x, y: np.sqrt(pow(x, 2) + pow(y, 2))
-        df1['distance'] = euclidean(delta_x, delta_y)
+        df1['distance'] = euclidean_distance(delta_x, delta_y)
         df1['distance'].fillna(value=0, inplace=True)
         distance_array_mean[index] = df1['distance'].mean()
         distance_array_std[index] = df1['distance'].std()
@@ -141,33 +151,19 @@ def calculate_sessions_mean_distance(uids: np.array, sessions: DataFrame, step: 
     return distance_array_mean, distance_array_std
 
 
-def euclidean(x, y):
-    return np.sqrt(pow(x, 2) + pow(y, 2))
-
-
 def euclidean_from_centroid(session: DataFrame):
     delta_x = session['x_centroid'] - session['x_centroid'].shift(1)
     delta_y = session['y_centroid'] - session['y_centroid'].shift(1)
-    session['distance'] = euclidean(delta_x, delta_y)
+    session['distance'] = euclidean_distance(delta_x, delta_y)
     session['distance'].fillna(value=0, inplace=True)
     return session
 
 
-def labels_from_articles(row: Series, df_labeled_articles: DataFrame):
-    global count
-    count += 1
-    id = row['click_article_id']
-    row['label'] = df_labeled_articles[df_labeled_articles['article_id'] == id]['label']
-    if count % 1000 == 0:
-        print(count, ": ", row['label'].values[0])
-    return row['label']
-
-
-def get_cut_sessions(sessions: list, cutoff: float) -> list:
+def get_cut_sessions(sessions: list, cutoff_threshold: float) -> list:
     cut_sessions = []
     for session in sessions:
         session.reset_index(inplace=True, drop=True)
-        cuts = session[session['distance'] > cutoff]
+        cuts = session[session['distance'] > cutoff_threshold]
         cutoff_index = cuts.index[0] if len(cuts) > 0 else None
         cut_session = (session, cutoff_index)
         cut_sessions.append(cut_session)

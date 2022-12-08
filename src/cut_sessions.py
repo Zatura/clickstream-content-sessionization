@@ -1,7 +1,8 @@
 import pickle
 from matplotlib import pyplot as plt
-from helpers import *
+from utils import *
 from pandas import DataFrame
+import numpy as np
 
 # Read dataset
 CUTOFF = 40
@@ -20,13 +21,13 @@ for i, item in enumerate(np_article_ids):
 
 # get cluster centers and label it with unique names
 cluster_centers = get_cluster_centers(tsne_clicks, damping=0.9, sample=10000)
-df_center = pd.DataFrame(cluster_centers, columns=['X', 'Y'])
+df_center = DataFrame(cluster_centers, columns=['X', 'Y'])
 df_center['label'] = get_random_labels(df_center.shape[0])
 while df_center['label'].unique().shape[0] < df_center.shape[0]:
     df_center['label'] = get_random_labels(df_center.shape[0])
 
-df_labeled_articles = pd.DataFrame(np_article_ids, columns=['article_id'])
-df_labeled_articles[['X', 'Y']] = pd.DataFrame(tsne_clicks)
+df_labeled_articles = DataFrame(np_article_ids, columns=['article_id'])
+df_labeled_articles[['X', 'Y']] = DataFrame(tsne_clicks)
 
 # get corresponding centroid labels
 print("[ INFO ] Applying ficticious topic labels")
