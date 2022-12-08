@@ -30,7 +30,7 @@ df_labeled_articles = DataFrame(np_article_ids, columns=['article_id'])
 df_labeled_articles[['X', 'Y']] = DataFrame(tsne_clicks)
 
 # get corresponding centroid labels
-print("[ INFO ] Applying ficticious topic labels")
+print("[ INFO ] Applying fictional topic labels")
 df_labeled_articles['label'] = ''
 df_labeled_articles['label'] = df_labeled_articles.apply(lambda row: utils.get_nearest_label(row, df_center), axis=1)
 
