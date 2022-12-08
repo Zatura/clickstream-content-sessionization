@@ -1,11 +1,11 @@
-from utils import read_globo_csv
+import utils
 import numpy as np
 import pickle
 from pandas import Series, DataFrame
 
 MIN_SIZE = 200
 
-df_clicks = read_globo_csv()
+df_clicks = utils.read_globo_csv()
 df_clicks.reset_index(inplace=True, drop=True)
 with open("data/np_uids_190.p", "rb") as file:
     np_unique_uids = pickle.load(file)
