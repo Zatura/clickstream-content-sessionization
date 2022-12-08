@@ -5,9 +5,9 @@ from pandas import Series, DataFrame
 
 MIN_SIZE = 20
 
-df_clicks = read_globo_csv()
-df_clicks.reset_index(inplace=True, drop=True)
-np_unique_uids = df_clicks['user_id'].unique()
+df_globo = read_globo_csv()
+df_globo.reset_index(inplace=True, drop=True)
+np_unique_uids = df_globo['user_id'].unique()
 np.random.seed(1)
 # np_unique_uids = np.random.choice(np_unique_uids, len(np_unique_uids), replace=False)
 df_user_ids = DataFrame()
@@ -31,11 +31,11 @@ def filter_sessions(row: Series, df_clicks: DataFrame):
         return False
 
 
-df_user_ids['filter'] = df_user_ids.apply(lambda row: filter_sessions(row, df_clicks), axis=1)
+df_user_ids['filter'] = df_user_ids.apply(lambda row: filter_sessions(row, df_globo), axis=1)
 
 count = 0
 for uid in np_unique_uids:
-    if len(df_clicks[df_clicks['user_id'] == uid]) > MIN_SIZE:
+    if len(df_globo[df_globo['user_id'] == uid]) > MIN_SIZE:
         np_uids = np.append(np_uids, uid)
     if len(np_uids) == total_length:
         break

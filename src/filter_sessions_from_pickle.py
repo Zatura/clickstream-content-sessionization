@@ -5,8 +5,8 @@ from pandas import Series, DataFrame
 
 MIN_SIZE = 200
 
-df_clicks = utils.read_globo_csv()
-df_clicks.reset_index(inplace=True, drop=True)
+df_globo = utils.read_globo_csv()
+df_globo.reset_index(inplace=True, drop=True)
 with open("data/np_uids_190.p", "rb") as file:
     np_unique_uids = pickle.load(file)
 np.random.seed(1)
@@ -30,7 +30,7 @@ def filter_sessions(row: Series, frame: DataFrame):
         return False
 
 
-df_user_ids['filter'] = df_user_ids.apply(lambda row: filter_sessions(row, df_clicks), axis=1)
+df_user_ids['filter'] = df_user_ids.apply(lambda row: filter_sessions(row, df_globo), axis=1)
 np_uids = np.array(df_user_ids[df_user_ids['filter'] == False]['user_id'])
 
 with open("data/np_uids_{}.pickle".format(MIN_SIZE), "wb") as file:
