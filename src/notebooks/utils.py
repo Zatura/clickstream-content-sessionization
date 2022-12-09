@@ -9,6 +9,17 @@ from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 
 
+def read_globo_csv(path: str) -> DataFrame:
+    print("[ INFO ] reading dataset")
+    df_clicks = DataFrame()
+    files = glob.glob(path)
+    # concatenate all files' data into a single dataframe
+    csv_dataframes = [pd.read_csv(file) for file in files]
+    df_clicks = pd.concat([df_clicks, *csv_dataframes])
+    print("[ INFO ] finish reading dataset")
+    return df_clicks
+
+
 def get_error(cutoff_index, true_index, last_index):
     if cutoff_index < true_index:
         error = (true_index - cutoff_index) / true_index
@@ -65,17 +76,6 @@ def get_cluster_centers(tsne_clicks, damping=0.5, sample=2000):
     return tsne_clicks_sample[cluster_centers_indices[:]]
 
 
-def read_globo_csv(path: str) -> DataFrame:
-    print("[ INFO ] reading dataset")
-    df_clicks = DataFrame()
-    files = glob.glob(path)
-    # concatenate all files' data into a single dataframe
-    csv_dataframes = [pd.read_csv(file) for file in files]
-    df_clicks = pd.concat([df_clicks, *csv_dataframes])
-    print("[ INFO ] finish reading dataset")
-    return df_clicks
-
-
 def get_random_labels(amount=10, deterministic=True):
     colors = ["red", "green", "blue", "cyan", "magenta", "yellow", "black", "white", "orange", "pink", "purple",
               "aqua", "amber", "lazuli", "vanilla", "gray", "tan", "tangerine", "sand", "golden", "ginger", "rose",
@@ -93,12 +93,12 @@ def get_random_labels(amount=10, deterministic=True):
 def get_nearest_label(row: Series, df_center: DataFrame):
     delta_x = row['X'] - df_center['X']
     delta_y = row['Y'] - df_center['Y']
-    distances = euclidean_distance(delta_x, delta_y)
+    distances = __euclidean_distance(delta_x, delta_y)
     index = distances[distances == distances.min()].index[0]
     return df_center['label'][index]
 
 
-def euclidean_distance(x, y):
+def __euclidean_distance(x, y):
     return np.sqrt(pow(x, 2) + pow(y, 2))
 
 
@@ -141,7 +141,7 @@ def calculate_sessions_mean_distance(user_ids: np.array, sessions: DataFrame, st
         df1 = sessions[sessions['user_id'] == user_ids[index]]
         delta_x = df1['x_centroid'] - df1['x_centroid'].shift(1)
         delta_y = df1['y_centroid'] - df1['y_centroid'].shift(1)
-        df1['distance'] = euclidean_distance(delta_x, delta_y)
+        df1['distance'] = __euclidean_distance(delta_x, delta_y)
         df1['distance'].fillna(value=0, inplace=True)
         distance_array_mean[index] = df1['distance'].mean()
         distance_array_std[index] = df1['distance'].std()
@@ -153,7 +153,7 @@ def calculate_sessions_mean_distance(user_ids: np.array, sessions: DataFrame, st
 def euclidean_from_centroid(session: DataFrame):
     delta_x = session['x_centroid'] - session['x_centroid'].shift(1)
     delta_y = session['y_centroid'] - session['y_centroid'].shift(1)
-    session['distance'] = euclidean_distance(delta_x, delta_y)
+    session['distance'] = __euclidean_distance(delta_x, delta_y)
     session['distance'].fillna(value=0, inplace=True)
     return session
 
