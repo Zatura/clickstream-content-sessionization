@@ -1,31 +1,40 @@
 import pickle
 from matplotlib import pyplot as plt
 from pandas import DataFrame
-from .. import utils
+import numpy as np
+from sklearn.cluster import AffinityPropagation
+import utils
 
 # Read dataset
-df_globo = utils.read_globo_csv()
+df_globo = utils.read_globo_csv("../data/globo/clicks/*.csv")
 df_globo.reset_index(inplace=True, drop=True)
+df_globo.rename(columns={column: column.split("click_")[-1] for column in df_globo.columns}, inplace=True)
 
-np_article_ids = np.array(df_globo['click_article_id'])
+np_article_ids = np.array(df_globo['article_id'])
 np_article_ids.sort()
 np_article_ids = np.unique(np_article_ids)
 
 # Read features
-tsne_results = pickle.load(open("../data/tsne_features.p", "rb"))
+features = pickle.load(open("../data/tsne_features.p", "rb"))
 np_clicks = np.ndarray((np_article_ids.shape[0], 2), dtype=float)
 for i, item in enumerate(np_article_ids):
-    np_clicks[i] = tsne_results[item]
+    np_clicks[i] = features[item]
 
 # get cluster centers and label it with unique names
-cluster_centers = utils.get_cluster_centers(np_clicks, damping=0.9, sample=10000)
-df_center = pd.DataFrame(cluster_centers, columns=['X', 'Y'])
+sample=10000
+tsne_clicks_sample = utils.get_sample(np_clicks, sample)
+clustering = AffinityPropagation(damping=0.9).fit(tsne_clicks_sample)
+print("labels: ", clustering.labels_.size)
+print("n_clusters: ", len(clustering.cluster_centers_indices_))
+
+cluster_centers = utils.get_cluster_centers(tsne_clicks_sample, clustering)
+df_center = DataFrame(cluster_centers, columns=['x', 'y'])
 df_center['label'] = utils.get_random_labels(df_center.shape[0])
 while df_center['label'].unique().shape[0] < df_center.shape[0]:
     df_center['label'] = utils.get_random_labels(df_center.shape[0])
 
-df_labeled_articles = pd.DataFrame(np_article_ids, columns=['article_id'])
-df_labeled_articles[['X', 'Y']] = pd.DataFrame(np_clicks)
+df_labeled_articles = DataFrame(np_article_ids, columns=['article_id'])
+df_labeled_articles[['x', 'y']] = DataFrame(np_clicks)
 
 # get corresponding centroid labels
 print("[ INFO ] Applying ficticious topic labels")
@@ -33,15 +42,15 @@ df_labeled_articles['label'] = ''
 df_labeled_articles['label'] = df_labeled_articles.apply(lambda row: utils.get_nearest_label(row, df_center), axis=1)
 
 # get corresponding centroid coordinates
-df_labeled_articles['x_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['X'])
-df_labeled_articles['y_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['Y'])
+df_labeled_articles['x_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['x'])
+df_labeled_articles['y_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['y'])
 
 # reduces size of dataframe with sampled users only
 np_uids_sampled = pickle.load(open("../data/np_uids_100.p", "rb"))
 df_reduced = df_globo[df_globo['user_id'].isin(np_uids_sampled)]
-df_reduced['x_centroid'] = df_reduced['click_article_id'].map(df_labeled_articles['x_centroid'])
-df_reduced['y_centroid'] = df_reduced['click_article_id'].map(df_labeled_articles['y_centroid'])
-df_reduced.sort_values(by='click_timestamp', inplace=True)
+df_reduced['x_centroid'] = df_reduced['article_id'].map(df_labeled_articles['x_centroid'])
+df_reduced['y_centroid'] = df_reduced['article_id'].map(df_labeled_articles['y_centroid'])
+df_reduced.sort_values(by='timestamp', inplace=True)
 df_reduced.reset_index(inplace=True, drop=True)
 
 # Generate simulated sessions
@@ -56,6 +65,7 @@ cutoff_array = np.linspace(start=1, stop=60, num=15)
 error_array = np.ones(shape=len(sample_sessions))
 
 cut_sessions = utils.get_cut_sessions(sample_sessions, 40)
+
 # cuttof error calculation
 error_list = []
 for index1, cutoff in enumerate(cutoff_array):
@@ -82,7 +92,7 @@ df_errors = pd.DataFrame(error_list)
 # df_clicks['label'] = ''
 # count = 0
 # df_clicks = df_clicks.apply(lambda row: labels_from_articles(row, df_labeled_articles), axis=1)
-# df_clicks = df_clicks.sort_values(by=['click_timestamp'])
+# df_clicks = df_clicks.sort_values(by=['timestamp'])
 # df_clicks = df_clicks.sort_values(by=['user_id'], kind='mergesort')
 
 
@@ -91,7 +101,7 @@ df_errors = pd.DataFrame(error_list)
 ######################################################
 df_pickle = pickle.load(open("data/df_clicks.pickle", "rb"))
 df_pickle[df_pickle['user_id'] == 22].sort_values(by=['label'], kind='mergesort')['label'].value_counts().plot.barh()
-df_pickle.sort_values(by=['click_timestamp'])
+df_pickle.sort_values(by=['timestamp'])
 
 area_original = 0.1
 area_sample = 4
@@ -99,9 +109,9 @@ color_original = (0, 0, 0)
 color_sample = (1, 0, 0)
 
 # ploting all points
-plt.scatter(tsne_results[:, 0], tsne_results[:, 1], s=area_original, c=color_original, alpha=0.5)
+plt.scatter(features[:, 0], features[:, 1], s=area_original, c=color_original, alpha=0.5)
 plt.scatter(cluster_centers[:, 0], cluster_centers[:, 1], s=30, c=(1, 0, 0), alpha=0.8)
-plot_globo_clicks(damping=0.9, sample=7000)
+utils.plot_globo_clicks(damping=0.9, sample=7000)
 
 # scikti-learn.org plot example
 # https://scikit-learn.org/stable/auto_examples/cluster/plot_affinity_propagation.html#sphx-glr-auto-examples-cluster-plot-affinity-propagation-py

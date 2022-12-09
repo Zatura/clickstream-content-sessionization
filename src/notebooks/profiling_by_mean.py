@@ -1,17 +1,19 @@
 import pickle
-import src.utils as utils
+import utils
 from pandas import DataFrame
+from sklearn.cluster import AffinityPropagation
 import numpy as np
 
 # Read dataset
-df_globo = utils.read_globo_csv()
+df_globo = utils.read_globo_csv("../data/globo/clicks/*.csv")
 df_globo.reset_index(inplace=True, drop=True)
+df_globo.rename(columns={column: column.split("click_")[-1] for column in df_globo.columns}, inplace=True)
 
 with open("../data/df_labeled.p", "rb") as file:
      features = pickle.load(file)
 
 # Get unique article_ids
-np_article_ids = np.array(df_globo['click_article_id'])
+np_article_ids = np.array(df_globo['article_id'])
 np_article_ids.sort()
 np_article_ids = np.unique(np_article_ids)
 
@@ -24,12 +26,16 @@ for i, item in enumerate(np_article_ids):
 with open("../data/np_uids_200.p", "rb") as file:
     np_user_ids = pickle.load(file)
 
-df_labeled_articles = pd.DataFrame(np_article_ids, columns=['article_id'])
-df_labeled_articles[['X', 'Y']] = pd.DataFrame(np_clicks)
+df_labeled_articles = DataFrame(np_article_ids, columns=['article_id'])
+df_labeled_articles[['x', 'y']] = DataFrame(np_clicks)
 
 # Calculate cluster centers
-cluster_centers = utils.get_cluster_centers(np_clicks, damping=0.9, sample=10000)
-df_center = pd.DataFrame(cluster_centers, columns=['X', 'Y'])
+sample=10000
+tsne_clicks_sample = utils.get_sample(np_clicks, sample)
+clustering = AffinityPropagation(damping=0.9).fit(tsne_clicks_sample)
+
+cluster_centers = utils.get_cluster_centers(np_clicks, clustering)
+df_center = DataFrame(cluster_centers, columns=['x', 'y'])
 df_center['label'] = utils.get_random_labels(df_center.shape[0])
 while df_center['label'].unique().shape[0] < df_center.shape[0]:
     df_center['label'] = utils.get_random_labels(df_center.shape[0])
@@ -40,8 +46,8 @@ df_labeled_articles['label'] = ''
 df_labeled_articles['label'] = df_labeled_articles.apply(lambda row: utils.get_nearest_label(row, df_center), axis=1)
 
 # get centroid coordinates
-df_labeled_articles['x_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['X'])
-df_labeled_articles['y_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['Y'])
+df_labeled_articles['x_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['x'])
+df_labeled_articles['y_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['y'])
 
 # with open("data/df_labeled.p", "wb") as file:
 #     pickle.dump(df_labeled_articles, file)

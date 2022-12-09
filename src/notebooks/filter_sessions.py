@@ -1,12 +1,14 @@
-import src.utils as utils
+import utils
 import numpy as np
 import pickle
 from pandas import Series, DataFrame
 
 MIN_SIZE = 20
 
-df_globo = utils.read_globo_csv()
+df_globo = utils.read_globo_csv("../data/globo/clicks/*.csv")
 df_globo.reset_index(inplace=True, drop=True)
+df_globo.rename(columns={column: column.split("click_")[-1] for column in df_globo.columns}, inplace=True)
+
 np_unique_uids = df_globo['user_id'].unique()
 np.random.seed(1)
 # np_unique_uids = np.random.choice(np_unique_uids, len(np_unique_uids), replace=False)

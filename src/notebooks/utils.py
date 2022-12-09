@@ -41,39 +41,37 @@ def plot_globo_clicks(tsne_clicks, damping=0.5, sample=2000):
     # clustering
     tsne_clicks_sample = get_sample(tsne_clicks, sample)
     print(tsne_clicks_sample)
-    clustering = AffinityPropagation(damping).fit(tsne_clicks_sample)
-    cluster_centers_indices = clustering.cluster_centers_indices_
-    labels = clustering.labels_
-    n_clusters_ = len(cluster_centers_indices)
-    print("labels: ", labels.size)
-    print("n_clusters: ", n_clusters_)
+    clustering = AffinityPropagation(damping=damping).fit(tsne_clicks_sample)
+    print("labels: ", clustering.labels_.size)
+    print("clusters: ", len(clustering.cluster_centers_indices_))
 
     # plotting
-    colors = cycle('bgrcmyk')
-    for k, col in zip(range(n_clusters_), colors):
-        class_members = labels == k
-        cluster_center = tsne_clicks_sample[cluster_centers_indices[k]]
-        plt.plot(tsne_clicks_sample[class_members, 0], tsne_clicks_sample[class_members, 1], col + '.')
-        plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col, markeredgecolor='k', markersize=7)
+    plot_affinity_propagation(clustering, tsne_clicks_sample)
+    return tsne_clicks_sample[clustering.cluster_centers_indices_[:]]
+
+
+def plot_affinity_propagation(clustering, tsne_clicks_sample):
+    n_clusters_ = len(clustering.cluster_centers_indices_)
+    colors = cycle('bgrcmy')
+    for k, color in zip(range(n_clusters_), colors):
+        class_members = clustering.labels_ == k
+        cluster_center = tsne_clicks_sample[clustering.cluster_centers_indices_[k]]
+        plt.plot(tsne_clicks_sample[class_members, 0], tsne_clicks_sample[class_members, 1], color + '.')
+        plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=color, markeredgecolor='k', markersize=7)
         for x in tsne_clicks_sample[class_members]:
-            plt.plot([cluster_center[0], x[0]], [cluster_center[1], x[1]], col)
-    return clustering
+            plt.plot([cluster_center[0], x[0]], [cluster_center[1], x[1]], color)
 
+def plot_tsne_points(tsne_features, cluster_centers):
+    area_original = 0.1
+    black_color = (0, 0, 0)
+    plt.scatter(tsne_features[:, 0], tsne_features[:, 1], s=area_original, c=black_color, alpha=0.5)
+    plt.scatter(cluster_centers[:, 0], cluster_centers[:, 1], s=30, c=(1, 0, 0), alpha=0.8)
 
-def get_cluster_centers(tsne_clicks, damping=0.5, sample=2000):
+def get_cluster_centers(tsne_clicks_sample, clustering):
     print("[ INFO ] Finding cluster centers trough affinity propagation")
-    # clustering
-    tsne_clicks_sample = get_sample(tsne_clicks, sample)
-    clustering = AffinityPropagation(damping).fit(tsne_clicks_sample)
-    cluster_centers_indices = clustering.cluster_centers_indices_
-    labels = clustering.labels_
-    n_clusters_ = len(cluster_centers_indices)
-    print("labels: ", labels.size)
-    print("n_clusters: ", n_clusters_)
-    # df['index'] = DataFrame(cluster_centers_indices[:])
-    # df[['X','Y']] = DataFrame(tsne_clicks_sample[cluster_centers_indices[:]])
-    # return df
-    return tsne_clicks_sample[cluster_centers_indices[:]]
+    print("labels: ", clustering.labels_.size)
+    print("n_clusters: ", len(clustering.cluster_centers_indices_))
+    return tsne_clicks_sample[clustering.cluster_centers_indices_[:]]
 
 
 def get_random_labels(amount=10, deterministic=True):
@@ -91,8 +89,8 @@ def get_random_labels(amount=10, deterministic=True):
 
 
 def get_nearest_label(row: Series, df_center: DataFrame):
-    delta_x = row['X'] - df_center['X']
-    delta_y = row['Y'] - df_center['Y']
+    delta_x = row['x'] - df_center['x']
+    delta_y = row['y'] - df_center['y']
     distances = __euclidean_distance(delta_x, delta_y)
     index = distances[distances == distances.min()].index[0]
     return df_center['label'][index]
@@ -107,13 +105,13 @@ def set_article_label(row: Series, df_labeled_articles: DataFrame):
     count += 1
     if count % 10000 == 0:
         print(count)
-    return df_labeled_articles[df_labeled_articles['article_id'] == row['click_article_id']]['label']
+    return df_labeled_articles[df_labeled_articles['article_id'] == row['article_id']]['label']
 
 
 def labels_from_articles(row: Series, df_labeled_articles: DataFrame):
     global count
     count += 1
-    _id = row['click_article_id']
+    _id = row['article_id']
     row['label'] = df_labeled_articles[df_labeled_articles['article_id'] == _id]['label']
     if count % 1000 == 0:
         print(count, ": ", row['label'].values[0])
