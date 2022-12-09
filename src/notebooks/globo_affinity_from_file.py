@@ -1,7 +1,7 @@
 import pickle
 from matplotlib import pyplot as plt
-import utils
 from pandas import DataFrame
+from .. import utils
 
 # Read dataset
 df_globo = utils.read_globo_csv()
@@ -12,7 +12,7 @@ np_article_ids.sort()
 np_article_ids = np.unique(np_article_ids)
 
 # Read features
-tsne_results = pickle.load(open("data/tsne_results.p", "rb"))
+tsne_results = pickle.load(open("../data/tsne_features.p", "rb"))
 np_clicks = np.ndarray((np_article_ids.shape[0], 2), dtype=float)
 for i, item in enumerate(np_article_ids):
     np_clicks[i] = tsne_results[item]
@@ -36,18 +36,16 @@ df_labeled_articles['label'] = df_labeled_articles.apply(lambda row: utils.get_n
 df_labeled_articles['x_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['X'])
 df_labeled_articles['y_centroid'] = df_labeled_articles['label'].map(df_center.set_index('label')['Y'])
 
-np_uids = pickle.load(open("data/np_uids_100.p", "rb"))
-
-# reduces size of dataframe with only sampled users
-df_reduced = df_globo[df_globo['user_id'].isin(np_uids)]
+# reduces size of dataframe with sampled users only
+np_uids_sampled = pickle.load(open("../data/np_uids_100.p", "rb"))
+df_reduced = df_globo[df_globo['user_id'].isin(np_uids_sampled)]
 df_reduced['x_centroid'] = df_reduced['click_article_id'].map(df_labeled_articles['x_centroid'])
 df_reduced['y_centroid'] = df_reduced['click_article_id'].map(df_labeled_articles['y_centroid'])
-
 df_reduced.sort_values(by='click_timestamp', inplace=True)
 df_reduced.reset_index(inplace=True, drop=True)
 
 # Generate simulated sessions
-sample_sessions = utils.build_simulated_sessions(np_uids, df_reduced)
+sample_sessions = utils.build_simulated_sessions(np_uids_sampled, df_reduced)
 list(map(utils.euclidean_from_centroid, sample_sessions))
 
 mean_session_cutoff = np.zeros(shape=len(sample_sessions))

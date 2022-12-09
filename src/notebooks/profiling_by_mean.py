@@ -1,5 +1,5 @@
 import pickle
-import utils
+import src.utils as utils
 from pandas import DataFrame
 import numpy as np
 
@@ -7,20 +7,21 @@ import numpy as np
 df_globo = utils.read_globo_csv()
 df_globo.reset_index(inplace=True, drop=True)
 
-with open("data/df_labeled.p", "rb") as file:
+with open("../data/df_labeled.p", "rb") as file:
      features = pickle.load(file)
 
+# Get unique article_ids
 np_article_ids = np.array(df_globo['click_article_id'])
 np_article_ids.sort()
 np_article_ids = np.unique(np_article_ids)
 
-# Read features
-tsne_results = pickle.load(open("data/tsne_results.p", "rb"))
+# Associate features with article_ids
+tsne_results = pickle.load(open("../data/tsne_features.p", "rb"))
 np_clicks = np.ndarray((np_article_ids.shape[0], 2), dtype=float)
 for i, item in enumerate(np_article_ids):
     np_clicks[i] = tsne_results[item]
 
-with open("data/np_uids_200.p", "rb") as file:
+with open("../data/np_uids_200.p", "rb") as file:
     np_user_ids = pickle.load(file)
 
 df_labeled_articles = pd.DataFrame(np_article_ids, columns=['article_id'])
@@ -45,7 +46,7 @@ df_labeled_articles['y_centroid'] = df_labeled_articles['label'].map(df_center.s
 # with open("data/df_labeled.p", "wb") as file:
 #     pickle.dump(df_labeled_articles, file)
 
-with open("data/df_labeled.p", "rb") as file:
+with open("../data/df_labeled.p", "rb") as file:
      df_labeled = pickle.load(file)
 
 sessions = utils.build_simulated_sessions(np_user_ids, df_globo)

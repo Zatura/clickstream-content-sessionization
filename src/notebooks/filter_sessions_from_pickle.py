@@ -1,4 +1,4 @@
-import utils
+import src.utils as utils
 import numpy as np
 import pickle
 from pandas import Series, DataFrame
@@ -7,7 +7,7 @@ MIN_SIZE = 200
 
 df_globo = utils.read_globo_csv()
 df_globo.reset_index(inplace=True, drop=True)
-with open("data/np_uids_190.p", "rb") as file:
+with open("../data/np_uids_190.p", "rb") as file:
     np_unique_uids = pickle.load(file)
 np.random.seed(1)
 df_user_ids = DataFrame()

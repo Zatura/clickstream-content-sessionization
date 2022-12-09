@@ -1,11 +1,11 @@
-from utils import read_globo_csv
+import src.utils as utils
 import numpy as np
 import pickle
 from pandas import Series, DataFrame
 
 MIN_SIZE = 20
 
-df_globo = read_globo_csv()
+df_globo = utils.read_globo_csv()
 df_globo.reset_index(inplace=True, drop=True)
 np_unique_uids = df_globo['user_id'].unique()
 np.random.seed(1)
