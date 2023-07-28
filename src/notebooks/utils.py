@@ -62,9 +62,9 @@ def plot_affinity_propagation(clustering, tsne_clicks_sample):
             plt.plot([cluster_center[0], x[0]], [cluster_center[1], x[1]], color)
 
 def plot_tsne_points(tsne_features, cluster_centers):
-    area_original = 0.1
-    black_color = (0, 0, 0)
-    plt.scatter(tsne_features[:, 0], tsne_features[:, 1], s=area_original, c=black_color, alpha=0.5)
+    AREA = 0.1
+    BLACK_COLOR = (0, 0, 0)
+    plt.scatter(tsne_features[:, 0], tsne_features[:, 1], s=AREA, c=BLACK_COLOR, alpha=0.5)
     plt.scatter(cluster_centers[:, 0], cluster_centers[:, 1], s=30, c=(1, 0, 0), alpha=0.8)
 
 def get_cluster_centers(tsne_clicks_sample, clustering):
@@ -81,11 +81,11 @@ def get_random_labels(amount=10, deterministic=True):
     topics = ["topics", "stories", "news", "contents", "subjects", "themes", "discussions", "novels", "articles",
               "phenomenons", "gossips", "rumors", "events", "occurrences", "incidents", "episodes", "disasters",
               "plots", "accidents"]
-    prod = ["{}-{}".format(item[0], item[1]) for item in itertools.product(colors, topics)]
-    if deterministic:
+    labels = [f"{color}-{topic}" for color, topic in itertools.product(colors, topics)]
+    if deterministic: 
         random.seed(1)
-    random.shuffle(prod)
-    return prod[:amount]
+    random.shuffle(labels)
+    return labels[:amount]
 
 
 def get_nearest_label(row: Series, df_center: DataFrame):
@@ -96,8 +96,7 @@ def get_nearest_label(row: Series, df_center: DataFrame):
     return df_center['label'][index]
 
 
-def __euclidean_distance(x, y):
-    return np.sqrt(pow(x, 2) + pow(y, 2))
+def __euclidean_distance(x, y): np.sqrt(pow(x, 2) + pow(y, 2))
 
 
 def set_article_label(row: Series, df_labeled_articles: DataFrame):
